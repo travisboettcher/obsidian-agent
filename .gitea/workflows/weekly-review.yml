@@ -10,6 +10,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate required secrets
+        env:
+          AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+          BASE_URL: ${{ vars.BASE_URL }}
+          VAULT_REPO: ${{ vars.VAULT_REPO }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          missing=()
+          [ -z "$AUTH_TOKEN" ]       && missing+=(AUTH_TOKEN)
+          [ -z "$BASE_URL" ]         && missing+=(BASE_URL)
+          [ -z "$VAULT_REPO" ]       && missing+=(VAULT_REPO)
+          [ -z "$ANTHROPIC_API_KEY" ] && missing+=(ANTHROPIC_API_KEY)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "ERROR: Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+
       - name: Checkout obsidian-agent repo
         uses: actions/checkout@v4
         with:
@@ -18,7 +35,7 @@ jobs:
       - name: Checkout vault repo
         uses: actions/checkout@v4
         with:
-          repository: ${{ secrets.VAULT_REPO }}
+          repository: ${{ vars.VAULT_REPO }}
           token: ${{ secrets.AUTH_TOKEN }}
           path: vault
 
@@ -80,8 +97,8 @@ jobs:
       - name: Open PR via Gitea API
         env:
           AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
-          BASE_URL: ${{ secrets.BASE_URL }}
-          VAULT_REPO: ${{ secrets.VAULT_REPO }}
+          BASE_URL: ${{ vars.BASE_URL }}
+          VAULT_REPO: ${{ vars.VAULT_REPO }}
           WEEK: ${{ steps.vars.outputs.WEEK }}
           BRANCH: ${{ steps.vars.outputs.BRANCH }}
         run: |
