@@ -15,16 +15,12 @@ jobs:
         with:
           path: obsidian-agent
 
-      - name: Clone vault repo
-        env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-          GITEA_BASE_URL: ${{ secrets.GITEA_BASE_URL }}
-          VAULT_REPO: ${{ secrets.VAULT_REPO }}
-        run: |
-          # Strip protocol from base URL so we can inject credentials
-          HOST="${GITEA_BASE_URL#https://}"
-          HOST="${HOST#http://}"
-          git clone "https://oauth2:${GITEA_TOKEN}@${HOST}/${VAULT_REPO}.git" vault
+      - name: Checkout vault repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.VAULT_REPO }}
+          token: ${{ secrets.AUTH_TOKEN }}
+          path: vault
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -78,21 +74,13 @@ jobs:
           fi
 
       - name: Push branch to vault
-        env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-          GITEA_BASE_URL: ${{ secrets.GITEA_BASE_URL }}
-          VAULT_REPO: ${{ secrets.VAULT_REPO }}
         run: |
-          HOST="${GITEA_BASE_URL#https://}"
-          HOST="${HOST#http://}"
-          git -C vault push \
-            "https://oauth2:${GITEA_TOKEN}@${HOST}/${VAULT_REPO}.git" \
-            "${{ steps.vars.outputs.BRANCH }}"
+          git -C vault push origin "${{ steps.vars.outputs.BRANCH }}"
 
       - name: Open PR via Gitea API
         env:
-          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
-          GITEA_BASE_URL: ${{ secrets.GITEA_BASE_URL }}
+          AUTH_TOKEN: ${{ secrets.AUTH_TOKEN }}
+          BASE_URL: ${{ secrets.BASE_URL }}
           VAULT_REPO: ${{ secrets.VAULT_REPO }}
           WEEK: ${{ steps.vars.outputs.WEEK }}
           BRANCH: ${{ steps.vars.outputs.BRANCH }}
@@ -111,8 +99,8 @@ jobs:
           result = subprocess.run(
               [
                   "curl", "--fail-with-body", "-s", "-X", "POST",
-                  f"{os.environ['GITEA_BASE_URL']}/api/v1/repos/{os.environ['VAULT_REPO']}/pulls",
-                  "-H", f"Authorization: token {os.environ['GITEA_TOKEN']}",
+                  f"{os.environ['BASE_URL']}/api/v1/repos/{os.environ['VAULT_REPO']}/pulls",
+                  "-H", f"Authorization: token {os.environ['AUTH_TOKEN']}",
                   "-H", "Content-Type: application/json",
                   "-d", payload,
               ],
