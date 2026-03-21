@@ -5,7 +5,6 @@ on:
     secrets:
       ANTHROPIC_API_KEY:
         required: true
-  workflow_dispatch:
 
 jobs:
   weekly-review:
@@ -15,6 +14,7 @@ jobs:
       - name: Checkout obsidian-agent repo
         uses: actions/checkout@v4
         with:
+          repository: travisboettcher/obsidian-agent
           path: obsidian-agent
 
       - name: Checkout vault repo
