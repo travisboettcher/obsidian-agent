@@ -1,0 +1,90 @@
+name: Weekly Review
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+  workflow_dispatch:
+
+jobs:
+  weekly-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout obsidian-agent repo
+        uses: actions/checkout@v4
+        with:
+          path: obsidian-agent
+
+      - name: Checkout vault repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: vault
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r obsidian-agent/requirements.txt
+
+      - name: Compute week and branch name
+        id: vars
+        run: |
+          python3 - <<'PYEOF'
+          import os
+          from datetime import date, timedelta
+
+          today = date.today()
+          # We run on Monday; the completed week ended last Sunday
+          last_sunday = today - timedelta(days=1)
+          iso = last_sunday.isocalendar()
+          week = f"{iso[0]}-W{iso[1]:02d}"
+          branch = f"vault-agent/{today.isoformat()}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"WEEK={week}\n")
+              f.write(f"BRANCH={branch}\n")
+          PYEOF
+
+      - name: Create branch in vault
+        run: |
+          git -C vault config user.email "vault-agent@github-actions"
+          git -C vault config user.name "Vault Agent"
+          git -C vault checkout -b "${{ steps.vars.outputs.BRANCH }}"
+
+      - name: Run agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VAULT_DIR: ./vault
+          WEEK: ${{ steps.vars.outputs.WEEK }}
+        run: |
+          python3 obsidian-agent/agent.py > /tmp/pr_body.txt
+
+      - name: Commit vault changes
+        run: |
+          git -C vault add -A
+          if ! git -C vault diff --cached --quiet; then
+            git -C vault commit -m "chore: weekly review ${{ steps.vars.outputs.WEEK }}"
+          else
+            echo "No changes to commit"
+          fi
+
+      - name: Push branch to vault
+        run: |
+          git -C vault push origin "${{ steps.vars.outputs.BRANCH }}"
+
+      - name: Open PR via GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --repo "${{ github.repository }}" \
+            --title "Weekly review: ${{ steps.vars.outputs.WEEK }}" \
+            --head "${{ steps.vars.outputs.BRANCH }}" \
+            --base main \
+            --body-file /tmp/pr_body.txt
