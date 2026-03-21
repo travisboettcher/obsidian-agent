@@ -12,13 +12,13 @@ jobs:
 
     steps:
       - name: Checkout obsidian-agent repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: travisboettcher/obsidian-agent
           path: obsidian-agent
 
       - name: Checkout vault repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ github.repository }}
           token: ${{ secrets.GITHUB_TOKEN }}
