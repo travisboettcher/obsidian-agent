@@ -15,6 +15,7 @@ Environment variables:
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -48,7 +49,7 @@ ALLOWED_GIT_SUBCOMMANDS = {"log", "diff", "status", "show", "ls-files"}
 def _resolve_vault_path(rel_path: str) -> Path:
     """Resolve a relative path inside VAULT_DIR, rejecting traversal attacks."""
     target = (VAULT_DIR / rel_path).resolve()
-    if not str(target).startswith(str(VAULT_DIR)):
+    if not target.is_relative_to(VAULT_DIR):
         raise ValueError(f"Path escapes vault root: {rel_path!r}")
     return target
 
@@ -106,7 +107,7 @@ def write_file(path: str, content: str) -> str:
 
 def git_diff(args: str) -> str:
     """Run a read-only git command in the vault directory."""
-    parts = args.strip().split()
+    parts = shlex.split(args.strip())
     if not parts:
         return "Error: no git arguments provided"
     subcommand = parts[0]
