@@ -94,8 +94,8 @@ jobs:
 name: Incremental Processing
 
 on:
-  pull_request:
-    types: [closed]   # trigger after each review PR merges
+  schedule:
+    - cron: "0 6 1 * *"  # 1st of each month, 6am UTC
   workflow_dispatch:
     inputs:
       batch_mode:
@@ -105,7 +105,6 @@ on:
 
 jobs:
   incremental-processing:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     permissions:
       contents: write
       pull-requests: write
