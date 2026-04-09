@@ -232,6 +232,7 @@ organised with the PARA method. The vault directories are:
   3-Resources/  — reference material and weekly reviews
   4-Archive/    — completed or inactive items
   Daily Notes/  — daily capture notes (named YYYY-MM-DD.md)
+  Daily Reviews/ — end-of-day review notes written by the daily review agent (named YYYY-MM-DD.md)
 
 Your task: synthesise the past week's daily notes into a weekly review.
 
@@ -246,7 +247,14 @@ The target ISO week is: {WEEK}
    for {WEEK} already exists (file would be named {WEEK}.md).
    - If it already exists, read it and UPDATE it in place rather than duplicating.
 4. Call read_file(...) on each relevant daily note.
-5. Write the weekly review to "3-Resources/Weekly Reviews/{WEEK}.md"
+5. Call list_files("Daily Reviews/") to discover daily review files for the week.
+   Apply the same date filter as step 2. For each matching file, call
+   read_file("Daily Reviews/YYYY-MM-DD.md"). These files contain:
+     - Action Items extracted from that day's vault activity
+     - Suggested Wikilinks
+     - Issues Flagged: Possible Orphan Notes and Tag Observations
+   If no daily review files exist for the week, continue without them.
+6. Write the weekly review to "3-Resources/Weekly Reviews/{WEEK}.md"
    using write_file. Use EXACTLY the following frontmatter and section structure:
 
 ---
@@ -274,11 +282,26 @@ period: YYYY-MM-DD to YYYY-MM-DD   ← Monday to Sunday of the week
 
 ## Notes for Next Week
 
+## Action Items Carried Forward
+
+## Flagged Issues
+
 ## Related Daily Notes
+
+## Related Daily Reviews
 
 ## Updated Notes
 
-6. Optionally update Home.md: under the "## 📚 Weekly Reviews" section, add a
+   When populating sections using daily review content:
+   - "Action Items Carried Forward": merge and de-duplicate action items from
+     all daily review files for the week. Group related items. Omit items that
+     appear resolved based on daily note content.
+   - "Flagged Issues": consolidate orphan note warnings and tag observations
+     across all daily reviews. If the same issue appears multiple days, list once.
+   - "Related Daily Reviews": one wikilink per daily review file read,
+     e.g. [[Daily Reviews/2026-04-07]] on its own line.
+   - Synthesise daily review content — do NOT copy-paste bullet lists verbatim.
+7. Optionally update Home.md: under the "## 📚 Weekly Reviews" section, add a
    wikilink for {WEEK} following the same pattern as existing entries
    (e.g., "- [[{WEEK}]] — Month DD-DD, YYYY"). Use append_to_file or
    write_file to make a targeted insertion. Read Home.md first to understand
