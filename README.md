@@ -4,7 +4,7 @@ A Python automation tool that reads an Obsidian vault and uses Claude to run thr
 
 ```
 daily review  →  weekly review  →  incremental processing
-(end of day)     (Monday AM)        (after each merge)
+(end of day)     (Monday AM)        (monthly)
 ```
 
 ## Workflows
@@ -33,7 +33,7 @@ agent.py                       Daily Notes/2026-W11-*.md  →  3-Resources/Weekl
 
 ### 3. Incremental Processing
 
-Runs after each workflow merge (or on demand). Uses git history to detect which notes changed since the last run, then performs two passes:
+Runs once a month (or on demand). Uses git history to detect which notes changed since the last run, then performs two passes:
 
 - **Phase 1 (Sonnet)** — mechanical enrichment per note: frontmatter tags, wikilinks, summaries. Optional batch API mode for 50% cost savings.
 - **Phase 2 (Opus)** — agentic synthesis loop: MOC maintenance, cross-note linking, promotion/demotion suggestions, gap identification.

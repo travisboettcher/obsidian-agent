@@ -6,7 +6,7 @@ The workflows are designed to feed into each other in sequence:
 
 ```
 daily review  →  weekly review  →  incremental processing
-(end of day)     (Monday AM)        (after each merge)
+(end of day)     (Monday AM)        (monthly)
 ```
 
 ## Architecture
@@ -24,7 +24,7 @@ daily review  →  weekly review  →  incremental processing
 - Write access: `Daily Notes/`, `3-Resources/Weekly Reviews/`, `Home.md`.
 
 ### Incremental Processing Agent (`incremental_agent.py`)
-- **`incremental_agent.py`** — Two-phase enrichment pass that runs after daily and weekly review PRs are merged. Detects changed notes via git history and processes only the delta. Max 40 iterations.
+- **`incremental_agent.py`** — Two-phase enrichment pass that runs monthly. Detects changed notes via git history and processes only the delta. Max 40 iterations.
 - **`.github/workflows/incremental-processing.yml`** — Callable GitHub Actions workflow. Requires full git history (`fetch-depth: 0`). Accepts a `batch_mode` boolean input.
 - **Phase 1 (Sonnet)** — Mechanical enrichment per note: frontmatter tags, wikilinks, summaries. Optional batch API mode (`BATCH_MODE=1`) for 50% cost savings; polls every 30 seconds, times out after 2 hours.
 - **Phase 2 (Opus)** — Agentic synthesis loop: MOC maintenance, cross-note linking, promotion/demotion suggestions, gap identification. Uses prompt caching for `Home.md` and the changed-files context window.
