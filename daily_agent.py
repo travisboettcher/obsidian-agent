@@ -306,8 +306,9 @@ tags:
 - Do NOT reorganise, rename, or delete any vault files.
 - Do NOT write to any path outside Daily Reviews/.
 - Keep the review concise — bullet points are preferred over prose.
-- If nothing was modified today and no daily note exists, write a minimal note
-  stating that no activity was detected.
+- If nothing was modified today and no daily note exists, do NOT call write_file.
+  Skip writing the review entirely. Your final message must still include a
+  SUMMARY: line explaining that no activity was detected.
 
 == SUMMARY ==
 At the very end of your final message (after all tool calls are complete),

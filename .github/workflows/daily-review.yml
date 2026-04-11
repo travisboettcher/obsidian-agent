@@ -63,19 +63,24 @@ jobs:
           python3 obsidian-agent/daily_agent.py > /tmp/pr_body.txt
 
       - name: Commit vault changes
+        id: commit
         run: |
           git -C vault add -A
           if ! git -C vault diff --cached --quiet; then
             git -C vault commit -m "chore: daily review ${{ steps.vars.outputs.DATE }}"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
           else
-            echo "No changes to commit"
+            echo "No changes to commit — skipping push and PR"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Push branch to vault
+        if: steps.commit.outputs.has_changes == 'true'
         run: |
           git -C vault push origin "${{ steps.vars.outputs.BRANCH }}"
 
       - name: Open PR via GitHub CLI
+        if: steps.commit.outputs.has_changes == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
