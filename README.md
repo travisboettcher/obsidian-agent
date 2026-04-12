@@ -1,5 +1,8 @@
 # obsidian-agent
 
+[![CI](https://github.com/travisboettcher/obsidian-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/travisboettcher/obsidian-agent/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/travisboettcher/obsidian-agent/branch/main/graph/badge.svg)](https://codecov.io/gh/travisboettcher/obsidian-agent)
+
 A Python automation tool that reads an Obsidian vault and uses Claude to run three complementary review workflows: a daily health check, a weekly synthesis, and an incremental enrichment pass. Each workflow feeds into the next.
 
 ```
