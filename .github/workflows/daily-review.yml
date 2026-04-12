@@ -2,6 +2,15 @@ name: Daily Review
 
 on:
   workflow_call:
+    inputs:
+      timezone:
+        type: string
+        default: "UTC"
+        description: "IANA timezone name used to determine today's date (e.g. America/Chicago)"
+      date:
+        type: string
+        default: ""
+        description: "Override date as YYYY-MM-DD. If empty, uses today in the given timezone."
     secrets:
       ANTHROPIC_API_KEY:
         required: true
@@ -38,9 +47,17 @@ jobs:
         run: |
           python3 - <<'PYEOF'
           import os
-          from datetime import date
+          from datetime import date, datetime
+          from zoneinfo import ZoneInfo
 
-          today = date.today()
+          date_override = "${{ inputs.date }}"
+          tz_name = "${{ inputs.timezone }}" or "UTC"
+
+          if date_override:
+              today = date.fromisoformat(date_override)
+          else:
+              today = datetime.now(ZoneInfo(tz_name)).date()
+
           branch = f"vault-agent/daily-{today.isoformat()}"
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:

@@ -205,7 +205,7 @@ TOOLS = [
             "Run a read-only git command in the vault directory to inspect recent "
             "changes. Allowed subcommands: log, diff, status, show, ls-files. "
             "Examples: 'status --short', "
-            "'log --oneline --since=midnight --name-only', "
+            "'log --oneline --after=2026-04-11T00:00:00 --until=2026-04-11T23:59:59 --name-only', "
             "'diff HEAD~1 HEAD --stat'."
         ),
         "input_schema": {
@@ -255,7 +255,7 @@ Your task: produce a short daily review for {DATE}.
 
 == WORKFLOW ==
 1. Call git_diff("status --short") to see which vault files have uncommitted changes.
-2. Call git_diff("log --oneline --since=midnight --name-only") to see today's commits
+2. Call git_diff("log --oneline --after={DATE}T00:00:00 --until={DATE}T23:59:59 --name-only") to see {DATE}'s commits
    and which files they touched.
 3. Call read_file("Daily Notes/{DATE}.md") to read today's daily note.
    If the file does not exist, note that no daily capture was found for {DATE}.
