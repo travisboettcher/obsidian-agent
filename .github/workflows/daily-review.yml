@@ -71,7 +71,18 @@ jobs:
           git -C vault config user.name "Vault Agent"
           git -C vault checkout -b "${{ steps.vars.outputs.BRANCH }}"
 
+      - name: Skip if review already merged
+        id: skip_check
+        run: |
+          if git -C vault ls-files --error-unmatch "Daily Reviews/${{ steps.vars.outputs.DATE }}.md" > /dev/null 2>&1; then
+            echo "Review for ${{ steps.vars.outputs.DATE }} already exists in main — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run agent
+        if: steps.skip_check.outputs.skip != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VAULT_DIR: ./vault
