@@ -4,6 +4,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import anthropic
 import incremental_agent as ia
 
 
@@ -559,3 +560,96 @@ class TestOpusLoop:
         )
         with pytest.raises(RuntimeError, match="did not finish"):
             ia.run_opus_loop(mock_client, ["Daily Notes/note.md"], [])
+
+
+# ---------------------------------------------------------------------------
+# _api_call_with_retry
+# ---------------------------------------------------------------------------
+
+def _make_rate_limit_error(retry_after: str | None = None) -> anthropic.RateLimitError:
+    """Build an anthropic.RateLimitError, optionally with a Retry-After header."""
+    mock_response = MagicMock()
+    mock_response.status_code = 429
+    mock_response.headers = {"retry-after": retry_after} if retry_after else {}
+    mock_response.request = MagicMock()
+    return anthropic.RateLimitError("rate limited", response=mock_response, body=None)
+
+
+class TestApiCallWithRetry:
+    def test_returns_response_on_first_success(self):
+        mock_client = MagicMock()
+        expected = MagicMock()
+        mock_client.messages.create.return_value = expected
+
+        result = ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        assert result is expected
+        mock_client.messages.create.assert_called_once_with(model="test", max_tokens=100)
+
+    def test_retries_once_on_rate_limit_then_succeeds(self, mocker):
+        mock_client = MagicMock()
+        expected = MagicMock()
+        mock_client.messages.create.side_effect = [_make_rate_limit_error(), expected]
+        mocker.patch("time.sleep")
+
+        result = ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        assert result is expected
+        assert mock_client.messages.create.call_count == 2
+
+    def test_raises_after_max_retries_exhausted(self, monkeypatch, mocker):
+        monkeypatch.setattr(ia, "MAX_RETRIES", 3)
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = _make_rate_limit_error()
+        mocker.patch("time.sleep")
+
+        with pytest.raises(anthropic.RateLimitError):
+            ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        assert mock_client.messages.create.call_count == 3
+
+    def test_uses_retry_after_header_as_sleep_duration(self, mocker):
+        mock_client = MagicMock()
+        expected = MagicMock()
+        mock_client.messages.create.side_effect = [
+            _make_rate_limit_error(retry_after="90"),
+            expected,
+        ]
+        mock_sleep = mocker.patch("time.sleep")
+
+        ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        mock_sleep.assert_called_once_with(90.0)
+
+    def test_uses_base_delay_when_no_retry_after_header(self, mocker):
+        mock_client = MagicMock()
+        expected = MagicMock()
+        mock_client.messages.create.side_effect = [_make_rate_limit_error(), expected]
+        mock_sleep = mocker.patch("time.sleep")
+
+        ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        mock_sleep.assert_called_once_with(ia.RETRY_BASE_DELAY)
+
+    def test_delay_doubles_on_successive_rate_limits(self, monkeypatch, mocker):
+        monkeypatch.setattr(ia, "MAX_RETRIES", 4)
+        mock_client = MagicMock()
+        expected = MagicMock()
+        error = _make_rate_limit_error()
+        mock_client.messages.create.side_effect = [error, error, error, expected]
+        mock_sleep = mocker.patch("time.sleep")
+
+        ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        assert [c.args[0] for c in mock_sleep.call_args_list] == [60, 120, 240]
+
+    def test_non_rate_limit_error_propagates_without_retry(self, mocker):
+        mock_client = MagicMock()
+        mock_client.messages.create.side_effect = ValueError("unexpected")
+        mock_sleep = mocker.patch("time.sleep")
+
+        with pytest.raises(ValueError, match="unexpected"):
+            ia._api_call_with_retry(mock_client, model="test", max_tokens=100)
+
+        mock_client.messages.create.assert_called_once()
+        mock_sleep.assert_not_called()
