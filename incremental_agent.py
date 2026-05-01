@@ -31,6 +31,8 @@ SONNET_MODEL = "claude-sonnet-4-6"
 OPUS_MODEL = "claude-opus-4-6"
 MAX_TOKENS = 8192
 MAX_ITERATIONS = 40
+MAX_RETRIES = 6
+RETRY_BASE_DELAY = 60  # seconds — rate limit window is 1 minute
 
 VAULT_DIR = Path(os.environ.get("VAULT_DIR", "./vault")).resolve()
 BATCH_MODE = os.environ.get("BATCH_MODE", "0") == "1"
@@ -49,6 +51,38 @@ SAFE_WRITE_PREFIXES = [
     "4-Archive/",
     "Home.md",
 ]
+
+# ---------------------------------------------------------------------------
+# API call helper with rate-limit retry
+# ---------------------------------------------------------------------------
+
+def _api_call_with_retry(client: anthropic.Anthropic, **kwargs):
+    """Call client.messages.create, retrying on 429 rate-limit errors with exponential backoff."""
+    delay = RETRY_BASE_DELAY
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return client.messages.create(**kwargs)
+        except anthropic.RateLimitError as exc:
+            if attempt == MAX_RETRIES:
+                raise
+            # Honour the Retry-After header when present
+            retry_after = None
+            if hasattr(exc, "response") and exc.response is not None:
+                header = exc.response.headers.get("retry-after")
+                if header:
+                    try:
+                        retry_after = float(header)
+                    except ValueError:
+                        pass
+            wait = retry_after if retry_after is not None else delay
+            print(
+                f"[agent] Rate limited (attempt {attempt}/{MAX_RETRIES - 1}). "
+                f"Retrying in {wait:.0f}s ...",
+                file=sys.stderr,
+            )
+            time.sleep(wait)
+            delay = min(delay * 2, 600)
+
 
 # ---------------------------------------------------------------------------
 # Tool implementations
@@ -657,7 +691,7 @@ def run_enrichment_immediate(
     for i, (file_path, file_content) in enumerate(tasks, 1):
         print(f"[agent] Enriching {i}/{len(tasks)}: {file_path}", file=sys.stderr)
         params = build_enrichment_params(file_path, file_content, system_blocks)
-        response = client.messages.create(**params)
+        response = _api_call_with_retry(client, **params)
         usage = response.usage
         if hasattr(usage, "cache_read_input_tokens") and usage.cache_read_input_tokens:
             print(f"[agent] cache_read_input_tokens={usage.cache_read_input_tokens}", file=sys.stderr)
@@ -747,7 +781,8 @@ def run_opus_loop(
 
     for iteration in range(1, MAX_ITERATIONS + 1):
         print(f"[agent] Opus API call #{iteration}", file=sys.stderr)
-        response = client.messages.create(
+        response = _api_call_with_retry(
+            client,
             model=OPUS_MODEL,
             max_tokens=MAX_TOKENS,
             system=system_blocks,
