@@ -519,7 +519,7 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
         if kv:
             key, val = kv.group(1), kv.group(2).strip()
             if val == "":
-                fields[key] = None
+                fields[key] = []  # initialize as empty list for multi-line list values
                 current_list_key = key
             elif val == "[]":
                 fields[key] = []
@@ -540,8 +540,10 @@ def parse_frontmatter(content: str) -> tuple[dict, str]:
 def serialize_frontmatter(fields: dict) -> str:
     """Reconstruct a YAML frontmatter block from a fields dict."""
     lines = ["---"]
-    raw_lines = fields.pop("_raw_lines", [])
+    raw_lines = fields.get("_raw_lines", [])
     for key, value in fields.items():
+        if key == "_raw_lines":
+            continue
         if isinstance(value, list):
             if not value:
                 lines.append(f"{key}:")
