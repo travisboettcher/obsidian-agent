@@ -78,10 +78,6 @@ class TestParseFrontmatter:
         fields, body = ia.parse_frontmatter(content)
         assert fields["tags"] == []
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Bug 1: sets fields[key]=None for bare list key then calls .append() on None",
-    )
     def test_list_item_format_BUG1(self):
         content = "---\ntags:\n  - project\n  - active\n---\nBody\n"
         fields, body = ia.parse_frontmatter(content)
@@ -144,10 +140,6 @@ class TestSerializeFrontmatter:
         result = ia.serialize_frontmatter(fields)
         assert "created: 2026-01-01" in result
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Bug 2: fields.pop('_raw_lines') mutates the caller's dict",
-    )
     def test_does_not_mutate_input_dict_BUG2(self):
         fields = {"title": "Note", "_raw_lines": ["extra: line"]}
         original_keys = set(fields.keys())
