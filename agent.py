@@ -276,7 +276,7 @@ period: YYYY-MM-DD to YYYY-MM-DD   ← Monday to Sunday of the week
 
 ### Projects Advanced
 
-### Tasks Identified
+### Tasks Completed This Week
 
 ## Insights & Reflections
 
@@ -293,9 +293,15 @@ period: YYYY-MM-DD to YYYY-MM-DD   ← Monday to Sunday of the week
 ## Updated Notes
 
    When populating sections using daily review content:
-   - "Action Items Carried Forward": merge and de-duplicate action items from
-     all daily review files for the week. Group related items. Omit items that
-     appear resolved based on daily note content.
+   - "Action Items Carried Forward": write a plain-bullet SUMMARY (using "- text",
+     NOT "- [ ] text") of outstanding items from the week's daily reviews. These
+     items are already tracked as "- [ ]" in the daily review files and visible to
+     the user's task system — do NOT reproduce them as checkboxes here, as that
+     creates duplicates. Consolidate semantically; omit items that appear resolved.
+     A task must appear in at most one section: completed items go in
+     "Tasks Completed This Week", open items go here as plain bullets.
+   - "Action Items Carried Forward" uses plain bullets "- text" only, never "- [ ]".
+     Do not copy-paste checkbox lists from daily reviews into this section.
    - "Flagged Issues": consolidate orphan note warnings and tag observations
      across all daily reviews. If the same issue appears multiple days, list once.
    - "Related Daily Reviews": one wikilink per daily review file read,

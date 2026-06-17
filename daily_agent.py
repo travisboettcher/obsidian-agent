@@ -261,9 +261,18 @@ Your task: produce a short daily review for {DATE}.
    If the file does not exist, note that no daily capture was found for {DATE}.
 4. Call read_file(...) on any other modified .md files identified in steps 1-2.
    Skip non-markdown files (images, attachments, etc.).
+4b. Call list_files("Daily Reviews/") and read any daily review files from the past
+   6 days (dates {DATE} minus 1 through minus 6). Collect every "- [ ]" item already
+   listed there. Also note any "- [ ]" items you encountered in the source notes read
+   in steps 3 and 4. This is your "already-tracked" list.
 5. Analyse the content you have read:
-   a. ACTION ITEMS — extract any tasks, TODOs, open loops, or commitments mentioned.
-      Look for phrases like "need to", "follow up", "TODO", "- [ ]", "remind", etc.
+   a. ACTION ITEMS — identify tasks that are IMPLICIT in the text (implied by prose,
+      flagged with "need to", "follow up", "remind", "TODO", etc.) but NOT yet formalized.
+      Before adding any item, check your already-tracked list from step 4b:
+      - If a semantically equivalent "- [ ]" item already exists in any recent daily
+        review OR in the source notes themselves, SKIP IT — it is already tracked.
+      - Only write tasks that are genuinely new and not yet captured anywhere.
+      Write each new inferred task as "- [ ] task description".
    b. WIKILINKS — identify topics mentioned in plain text that likely correspond to
       an existing note. Use list_files() on relevant subdirectories (e.g.
       '1-Projects/', '2-Areas/', '3-Resources/') to check whether a matching file
